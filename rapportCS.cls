@@ -33,7 +33,11 @@
 
 \newcommand{\titre}[1]{\renewcommand{\titre}{#1}}
 
+\newcommand{\soustitre}[1]{\renewcommand{\soustitre}{#1}}
+
 \newcommand{\eleve}[1]{\renewcommand{\eleve}{#1}}
+
+\newcommand{\infocours}[1]{\renewcommand{\infocours}{#1}}
 
 \newcommand{\tuteurecole}[1]{\renewcommand{\tuteurecole}{#1}}
 \newcommand{\tuteurentreprise}[1]{\renewcommand{\tuteurentreprise}{#1}}
@@ -78,35 +82,21 @@
 % Titre du rapport
 \rule{\linewidth}{0.2 mm} \\[0.4 cm]
 {\huge\bfseries \titre \par} \
+{\Large\itshape \soustitre \par}
 \rule{\linewidth}{0.2 mm} \\[1.0 cm]
 
 % Nom de l'étudiant
 {\scshape\LARGE \eleve \par} 
 \vspace{1.0cm}
 
-% Parcours de l'étudiant
-{\scshape \mention \\ \filiere \\ \master \par} 
-\vspace{1cm}
+% Info cours
+{\large \infocours \par}
+\vspace{0.5cm}
 
 % Dates
 {\large \dates \par} 
 
 \vspace{6cm}
-
-% Représentants de l'étudiant
-\begin{minipage}{0.5\textwidth}
-	\begin{flushleft} 
-	\emph{\textbf{Tuteurs école :}}\\ 
-    \tuteurecole \\ 
-	\end{flushleft}
-\end{minipage}
-~
-\begin{minipage}{0.4\textwidth}
-	\begin{flushright} 
-	\emph{\textbf{Tuteur entreprise :}} \\
-	 \tuteurentreprise \\
-	\end{flushright}
-\end{minipage}\\[4cm]
     
 	\vfill
 	
