@@ -21,7 +21,7 @@
 %\setlength{\headheight}{2cm}
 \RequirePackage{url}
 \RequirePackage[hidelinks]{hyperref}%Paquet pour insérer légendes dans des sous-figures comme Figure 1a, 1b
-\RequirePackage[left=3cm,right=3cm,top=3cm,bottom=5cm]{geometry} %Configuration de la page
+\RequirePackage[left=3cm,right=3cm,top=5.5cm,bottom=5cm,headheight=2.5cm,headsep=1cm]{geometry} %Configuration de la page
 
 
 %-------------------- Informations sur le rapport ----------------------
@@ -52,7 +52,7 @@
 \fancyheadoffset{0.5cm}
 
 
-\lhead{\includegraphics[scale=0.2]{logos/CSxParisSaclay.jpg}} %Affichage de l'image au top de la page
+\lhead{\includegraphics[scale=0.15]{logos/CSxParisSaclay.jpg}} %Affichage de l'image au top de la page
 \rhead{\nouppercase{\leftmark}}
 \rfoot{\thepage}
 \cfoot{\textbf{\titre}}
@@ -78,6 +78,8 @@
         \includegraphics[width=0.6\textwidth]{logos/logoCS.png}\par\vspace{1cm} %Insertion du logo Ecole
     \end{subfigure}
 \end{figure}
+
+\vspace{1.5cm}
 
 % Titre du rapport
 \rule{\linewidth}{0.2 mm} \\[0.4 cm]
