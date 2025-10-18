@@ -83,7 +83,7 @@
 
 % Titre du rapport
 \rule{\linewidth}{0.2 mm} \\[0.4 cm]
-{\huge\bfseries \titre \par} \
+{\huge\bfseries \mbox{\titre}} \\[0.2cm]
 {\Large\itshape \soustitre \par}
 \rule{\linewidth}{0.2 mm} \\[1.0 cm]
 
