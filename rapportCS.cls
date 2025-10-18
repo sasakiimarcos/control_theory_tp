@@ -2,7 +2,7 @@
 
 %--------------------- Packages ------------------------
 
-\RequirePackage[french]{babel} %Langue du document
+\RequirePackage[english]{babel} %Document language
 \RequirePackage[utf8]{inputenc} %Caractères spéciaux
 \RequirePackage[section]{placeins}%Pour placement de section
 \RequirePackage[T1]{fontenc} %Quelques lettres qui sont pas inclus dans UTF-8
