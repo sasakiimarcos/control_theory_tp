@@ -1,5 +1,6 @@
 \documentclass{rapportCS}
 \usepackage{lipsum}
+\usepackage{booktabs}
 \title{Control Theory Report} %Titre du fichier
 
 \begin{document}
@@ -47,14 +48,85 @@ Marcos Ichiro SASAKI}
 
 \subsection{Introduction}
 
-The objective of this practical work is to design and implement control strategies for the speed regulation of a direct current (DC) electrical drive system. Such systems play a vital role in modern engineering applications, including transportation, robotics, and industrial automation, where precise and stable control is required to ensure efficiency and reliability.
+The objective of this practical work is to design and implement control strategies for the speed regulation of a direct current (DC) electrical drive system. Such systems are widely used in transportation, robotics, and industrial automation, where precise speed control ensures efficiency and reliability.
 
-The study combines theoretical modeling with experimental validation and is structured in three main stages. First, the electrical and mechanical parameters of the DC motor are identified experimentally using a platform composed of two coupled DC machines, sensors, and a DC/DC power converter. Second, controllers are designed and tested in simulation using Matlab/Simulink---an inner current loop designed by pole placement and an outer speed loop developed using a linear quadratic (LQ) approach. Finally, these controllers are implemented on the physical system to assess their real-time performance and compare experimental results with simulations.
+The study combines modeling, simulation, and experimentation. First, the electrical and mechanical parameters of the DC motor are identified using a platform composed of two coupled DC machines, sensors, and a DC/DC converter. Then, controllers are designed and validated in Matlab/Simulink—an inner current loop by pole placement and an outer speed loop using a linear quadratic (LQ) approach. Finally, the controllers are tested on the physical setup to compare real and simulated performances.
 
-The overarching goal is to analyze how different control structures and parameters influence the dynamic behavior of the system, and to demonstrate the practical application of modern control techniques in achieving stable and accurate speed regulation in electromechanical systems.
+Part 1 focuses on parameter identification, determining key characteristics such as resistance, inductance, torque and voltage constants, friction coefficients, and inertia. These parameters provide the foundation for accurate modeling and effective control design in the subsequent stages.
+
+\vspace{1em}
+\noindent The equations governing the DC motor system are as follows:
+\begin{align}
+U_m(t) &= R \cdot I(t) + L \frac{dI(t)}{dt} + E(t) \label{eq:voltage} \\
+E(t) &= K_e \cdot \Omega(t) \label{eq:bemf} \\
+C_e(t) &= K_c \cdot I(t) \label{eq:torque} \\
+C_e(t) &= C_r(t) + C_s + f \cdot \Omega(t) + J \frac{d\Omega(t)}{dt} \label{eq:mechanical}
+\end{align}
+
+\noindent where:
+\begin{itemize}
+    \item $R$: armature resistance ($\Omega$)
+    \item $L$: armature inductance (H)
+    \item $E$: counter-electromotive force of the motor (V)
+    \item $\Omega$: rotational speed of the rotor (rad $\cdot$ s$^{-1}$)
+    \item $C_e$: electromagnetic torque of the motor (N $\cdot$ m)
+    \item $K_e$: voltage constant (V $\cdot$ s)
+    \item $K_c$: torque constant (N $\cdot$ m $\cdot$ A$^{-1}$)
+    \item $C_r$: resistant torque (N $\cdot$ m)
+    \item $C_s$: Coulomb friction torque (N $\cdot$ m)
+    \item $f$: viscous friction coefficient (N $\cdot$ m $\cdot$ s)
+    \item $J$: moment of inertia of the shafts of the two machines (kg $\cdot$ m$^2$)
+\end{itemize}
 
 \subsection{Armature resistance and inductance: $R$ and $L$}
 
+The armature resistance ($R$) and inductance ($L$) characterize the electrical behavior of the DC motor’s armature circuit. The resistance $R$ represents the opposition to the flow of current in the winding, while the inductance $L$ reflects the ability of the winding to store energy in its magnetic field. These parameters directly influence the transient response of the current when a voltage is applied to the motor.
+
+To determine $R$ and $L$, the rotor is kept stationary so that no back electromotive force (EMF) is generated. A step voltage $u_c(t)$ of $2.5\,\mathrm{V}$ is applied through the DC/DC converter, and the corresponding current response is observed in the Simulink oscilloscope. The experiment can be modeled as a simple first-order RL circuit governed by:
+
+\[
+U_m(t) = R I(t) + L \frac{dI(t)}{dt}.
+\]
+
+At steady state, the current reaches a constant value $I_\infty$, allowing the armature resistance to be calculated as:
+
+\[
+R = \frac{U_m}{I_\infty}.
+\]
+
+The inductance $L$ is obtained from the electrical time constant $\tau_e$ of the current response, given by:
+
+\[
+\tau_e = \frac{L}{R} \quad \Longrightarrow \quad L = R \cdot \tau_e.
+\]
+
+The measured quantities during the experiment are summarized in Table~\ref{tab:RLvalues}.
+
+\begin{table}[H]
+\centering
+\caption{Measured and calculated values for $R$ and $L$}
+\label{tab:RLvalues}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Quantity} & \textbf{Symbol} & \textbf{Measured Value} & \textbf{Unit} \\
+\midrule
+Applied voltage & $V$ & 6.5 & V \\
+Steady-state current & $I$ & 18.55 & A \\
+Electrical time constant & $\tau_e$ & 0.025 & s \\
+\midrule
+Calculated resistance & $R$ & 0.3504 & $\Omega$ \\
+Calculated inductance & $L$ & 0.00876 & H \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Thus, from the steady-state and transient measurements, the armature resistance and inductance of the DC machine were found to be:
+
+\[
+R = 0.3504~\Omega, \qquad L = 0.00876~\mathrm{H}.
+\]
+
+These values will be used in subsequent stages for the modeling and control design of the electrical drive system.
 
 \subsection{Voltage constant and torque constant: $K_e = K_c$}
 
