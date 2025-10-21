@@ -78,7 +78,7 @@ C_e(t) &= C_r(t) + C_s + f \cdot \Omega(t) + J \frac{d\Omega(t)}{dt} \label{eq:m
     \item $J$: moment of inertia of the shafts of the two machines (kg $\cdot$ m$^2$)
 \end{itemize}
 
-\subsection{Armature resistance and inductance: $R$ and $L$}
+\subsection{Armature Resistance and Inductance: $R$ and $L$}
 
 The armature resistance ($R$) and inductance ($L$) characterize the electrical behavior of the DC motor’s armature circuit. The resistance $R$ represents the opposition to the flow of current in the winding, while the inductance $L$ reflects the ability of the winding to store energy in its magnetic field. These parameters directly influence the transient response of the current when a voltage is applied to the motor.
 
@@ -120,6 +120,13 @@ Calculated inductance & $L$ & 0.00876 & H \\
 \end{tabular}
 \end{table}
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/graph_i_time.png}
+\caption{Current response $I(t)$ to step voltage input, showing the transient behavior and steady-state value.}
+\label{fig:i_time}
+\end{figure}
+
 Thus, from the steady-state and transient measurements, the armature resistance and inductance of the DC machine were found to be:
 
 \[
@@ -128,7 +135,7 @@ R = 0.3504~\Omega, \qquad L = 0.00876~\mathrm{H}.
 
 These values will be used in subsequent stages for the modeling and control design of the electrical drive system.
 
-\subsection{Voltage constant and torque constant: $K_e = K_c$}
+\subsection{Voltage Constant and Torque Constant: $K_e = K_c$}
 
 In steady state, the armature voltage satisfies
 \[
@@ -184,12 +191,93 @@ Hence, in SI units,
 \boxed{\,K_e = K_c \approx 0.794835901~\text{V}\cdot\text{s/rad}\,}.
 \]
 
-\subsection{Coulomb friction torque and viscous friction coefficient: $C_s$ and $f$}
+\subsection{Coulomb Friction Torque and Viscous Friction Coefficient: $C_s$ and $f$}
 
+In steady state (constant speed, $\dot{\Omega}=0$) and with zero external load torque ($C_r=0$), the DC motor torque balance reduces to
+\[
+K_c\,I \;=\; f\,\Omega \;+\; C_s ,
+\]
+where $K_c$ is the torque constant (equal to the back–EMF constant in SI), $f$ is the viscous friction coefficient, and $C_s$ is the Coulomb (dry) friction torque.
 
-\subsection{Moment of inertia of the system: $J$}
+Hence, plotting the measured current $I$ versus angular speed $\Omega$ and fitting the affine model
+\[
+I \;=\; a\,\Omega \;+\; b
+\]
+yields $f = K_c\,a$ and $C_s = K_c\,b$.
 
+\paragraph{}
+\begin{table}[H]
+\centering
+\caption{Steady-state points used for $I$–$\Omega$ identification.}
+\label{tab:friction_data}
+\begin{tabular}{lcccc}
+\toprule
+$u_c$ (V) & $U_m$ (V) & rpm & $\Omega$ (rad/s) & $I$ (A)\\
+\midrule
+2 & 5  & 57.1736  & 5.987205 & 0.9976 \\
+3 & 16 & 184.3761 & 19.307820 & 1.1536 \\
+4 & 27 & 317.6292 & 33.262052 & 1.2517 \\
+6 & 49 & 593.3711 & 62.137676 & 1.6074 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
+A linear regression of $I$ vs.\ $\Omega$ gives (see plotted trendline):
+\[
+I \;=\; \underbrace{0.0107}_{a}\,\Omega \;+\; \underbrace{0.9293}_{b}\quad [\mathrm{A}],
+\]
+with $\Omega$ in rad/s.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/graph_i_omega.png}
+\caption{Linear regression of steady-state current $I$ versus angular speed $\Omega$.}
+\label{fig:i_omega}
+\end{figure}
+
+Using the previously identified $K_c = K_e = 0.794835901~\mathrm{V\,s/rad} = \mathrm{N\,m/A}$, we obtain
+\[
+f \;=\; K_c\,a \;=\; 0.794835901 \times 0.0107 \;=\; \mathbf{0.008504744}~\mathrm{N\,m\,s},
+\]
+\[
+C_s \;=\; K_c\,b \;=\; 0.794835901 \times 0.9293 \;=\; \mathbf{0.738641003}~\mathrm{N\,m}.
+\]
+
+These friction parameters will be used in the motor model and subsequent controller design/validation.
+
+\subsection{Moment of Inertia of the System: $J$}
+
+When the control signal is removed, the motor supply is cut and the rotor slows down under the effect of friction only. The dynamic equation governing the deceleration is:
+\[
+J\,\dot{\Omega} + f\,\Omega + C_s = 0,
+\]
+which can be written as:
+\[
+\dot{\Omega} + \frac{1}{\tau}\,\Omega = -\frac{C_s}{J}, \qquad \text{with } \tau = \frac{J}{f}.
+\]
+The solution of this first-order differential equation is:
+\[
+\Omega(t) = \left(\Omega_0 + \frac{C_s}{f}\right)e^{-t/\tau} - \frac{C_s}{f},
+\]
+where $\Omega_0$ is the speed at the moment the supply is interrupted.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/signal_removed.png}
+\caption{Angular velocity $\Omega(t)$ decay (blue curve) when the control signal is removed, showing exponential deceleration due to friction.}
+\label{fig:J_measurement}
+\end{figure}
+
+From the experimental speed curve (see Figure~\ref{fig:J_measurement}), the motor exhibits an exponential decay in velocity until it comes to rest. By determining the time constant $\tau$ from the slope of this decay, the moment of inertia is obtained as:
+\[
+J = \tau\,f.
+\]
+Using the identified viscous friction coefficient and the time constant estimated from the measured response, we find:
+\[
+\boxed{J = 0.1213266~\mathrm{kg\cdot m^2}}.
+\]
+
+This value will be used in the subsequent modeling and simulation stages to complete the characterization of the DC motor’s mechanical dynamics.
 
 
 
