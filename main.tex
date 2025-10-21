@@ -130,6 +130,59 @@ These values will be used in subsequent stages for the modeling and control desi
 
 \subsection{Voltage constant and torque constant: $K_e = K_c$}
 
+In steady state, the armature voltage satisfies
+\[
+U_m = E + R\,I = K_e\,\Omega + R\,I,
+\]
+so the (back–EMF) voltage constant $K_e$ (equal to the torque constant $K_c$ in SI units) can be obtained directly from averaged steady-state measurements as
+\[
+K_e \;=\; \frac{\overline{U}_m - R\,\overline{I}}{\overline{\Omega}} \qquad (\text{with } \overline{\Omega}\text{ in rad/s}).
+\]
+
+
+\paragraph{}
+With the rotor turning (stator energized), we applied a constant control $u_c$ at the converter input and increased it in steps $u_c=0,2,3,4~\mathrm{V}$, waiting for steady state each time. At steady state we recorded:
+(i) the average armature voltage $U_m$ (voltmeter),
+(ii) the current sensor output $V_I$ (converted to $I$ via $I=V_I/K_{\mathrm{cap}I}$ with $K_{\mathrm{cap}I}=0.1~\mathrm{V/A}$),
+and (iii) the rotational speed in rpm (converted to $\Omega$ via $\Omega= \text{rpm}\cdot 2\pi/60$).
+
+\paragraph{}
+\begin{table}[H]
+\centering
+\caption{Steady-state measurements and converted quantities.}
+\label{tab:Ke_data}
+\begin{tabular}{lccccc}
+\toprule
+$u_c$ (V) & $V_I$ (V) & rpm & $\Omega$ (rad/s) & $I=V_I/0.1$ (A) & $U_m$ (V)\\
+\midrule
+0 & 0.0374 & 3.0184  & 0.316086 & 0.374  & 0 \\
+2 & 0.9976 & 57.1736 & 5.987205 & 9.976  & 5 \\
+3 & 1.1536 & 184.3761& 19.307820& 11.536 & 16 \\
+4 & 1.2517 & 317.6292& 33.262052& 12.517 & 27 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Using the previously identified armature resistance
+\[
+R = 0.350404313~\Omega,
+\]
+and the averaged values from our measurements (already converted to SI units):
+\[
+\overline{U}_m = 12~\text{V},\quad
+\overline{I} = 0.860075~\text{A},\quad
+\overline{\Omega} = 14.7182909~\text{rad/s} \;\;(\text{from } 140.549325~\text{rpm}),
+\]
+we obtain
+\[
+K_e \;=\; \frac{12 - 0.350404313 \times 0.860075}{14.7182909}
+\;=\; 0.794835901~\text{V}\cdot\text{s/rad}.
+\]
+
+Hence, in SI units,
+\[
+\boxed{\,K_e = K_c \approx 0.794835901~\text{V}\cdot\text{s/rad}\,}.
+\]
 
 \subsection{Coulomb friction torque and viscous friction coefficient: $C_s$ and $f$}
 
