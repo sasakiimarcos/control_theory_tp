@@ -9,7 +9,7 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{geometry}
-\geometry{margin=2.5cm}
+\geometry{margin=3cm}
 \usepackage{hyperref}
 \title{Control Theory Report} %Titre du fichier
 
@@ -545,21 +545,13 @@ ylabel('Voltage (V)')
 xlabel('Time (s)')
 \end{verbatim}
 
-The resulting simulation plots are shown in Figures~\ref{fig:current_response} and~\ref{fig:voltage_response}.
+The resulting simulation is shown in Figure~\ref{fig:current_response}.
 
 \begin{figure}[H]
     \centering
-    % \includegraphics[width=0.85\linewidth]{
-    % .jpg}
+    \includegraphics[width=0.85\linewidth]{figures/response_to_current_loop.png}
     \caption{Step response of the current loop to a setpoint of 20~A.}
     \label{fig:current_response}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    % \includegraphics[width=0.85\linewidth]{voltage_response.jpg}
-    \caption{Control voltage applied by the converter during the transient.}
-    \label{fig:voltage_response}
 \end{figure}
 
 \noindent\textbf{Analysis of the results:}
@@ -579,6 +571,38 @@ T_s \approx 0.1~\text{s}, \quad M_p < 10\%.
 
 Hence, the performance objectives for the current loop are successfully met.
 
+\subsubsection{Validation with the engine simulator (TPVitessePartie21.slx)}
+
+\paragraph{Scenario A:} $C_r=0$ and $I^\star(t)$ steps from $0$ to $20$ A at $t=1$ s.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/simulink1.png}
+\caption{Scenario A — step $I^\star: 0 \rightarrow 20$ A. Top: measured current $I(t)$; bottom: speed $\Omega(t)$.}
+\label{fig:part21_scnA}
+\end{figure}
+
+\textbf{Performance check.} From Fig.~\ref{fig:part21_scnA}, $I(t)$ reaches the reference with a small transient overshoot ($<10\%$), settles rapidly (order $10^{-1}$\,s), and exhibits negligible steady–state error due to the integral action in the current loop.  
+\textbf{Why $I(t)$ decreases at high speed.} The electrical and mechanical dynamics are
+\[
+U_m = R I + L \dot I + K_e \Omega,
+\qquad
+J \dot \Omega = K_c I - f \Omega - C_s .
+\]
+As $\Omega$ grows, the back–EMF term $K_e\Omega$ increases, reducing the effective voltage available to sustain $I=20$ A. When the actuator saturates ($U_m=\pm 90$ V), the controller cannot compensate, so $I(t)$ droops slightly while $\Omega$ is high.
+
+\paragraph{Scenario B:} $C_r=0$ and $I^\star(t)$ steps from $+10$ A to $-10$ A at $t=2$ s.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/simulink2.png}
+\caption{Scenario B — step $I^\star: +10 \rightarrow -10$ A. Top: measured current $I(t)$; bottom: $\Omega(t)$.}
+\label{fig:part21_scnB}
+\end{figure}
+
+\textbf{Reason for the delay in sign reversal.} Prior to $t=2$ s, the integrator has accumulated a positive state to track $+10$ A. At the negative step, the demanded control drives $u_c$ to its limit; the integrator continues to wind up while $U_m$ is saturated, and the nonzero back–EMF $K_e\Omega$ further increases the voltage needed to reverse the current. The combination of actuator saturation and integrator windup delays the zero crossing of $I(t)$.
+
+\textbf{Remedy.} Implement anti–windup in the current controller, e.g.\ (i) \emph{integrator clamping/conditional integration} when $u_c$ or $U_m$ saturates, or (ii) a \emph{tracking (back–calculation) loop} that drives the integrator toward the saturated actuator output. Optionally add an EMF feedforward term $U_{m,\mathrm{ff}}=K_e \Omega$ so the controller primarily regulates $R I + L \dot I$. With anti–windup, the delay is effectively removed while preserving the settling-time and overshoot specifications.
 
 % Removed stray numbered section placeholder
 \subsection{Speed Regulation by a Controller with Integrator}
@@ -1172,7 +1196,36 @@ It demonstrated the fundamental principles of cascaded control and observer desi
 
 
 \newpage
+%------------ Additional Examples ----------------
 
+\section{Additional Examples}
+
+
+
+%------------- Useful Commands ----------------
+
+\section{Useful Commands}
+
+Here are some useful commands:
+
+%------ To insert and cite a centered image -----
+
+\insererfigure{logos/logoCS.png}{3cm}{Figure caption}{Figure label}
+% First argument is the path to the image
+% Second is the image height
+% Third is the caption
+% Fourth is the label
+
+Here, I cite the image \ref{fig: Figure label}
+
+
+%------- To insert and cite an equation --------------
+
+\begin{equation} \label{eq: example}
+\rho + \Delta = 42
+\end{equation}
+
+Equation \ref{eq: example} is cited here. 
 
 
 
