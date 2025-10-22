@@ -10,6 +10,7 @@
 \usepackage{subcaption}
 \usepackage{geometry}
 \geometry{margin=3cm}
+\usepackage{listings}
 \usepackage{hyperref}
 \title{Control Theory Report} %Titre du fichier
 
@@ -770,9 +771,48 @@ A suitable balance between $Q$ and $r$ results in a settling time close to
 $2~\mathrm{s}$ and an overshoot below $10\%$, as required by the design specifications.
 
 
-\subsection{Simulation and Performance Evaluation}
-Simulate the closed-loop system for different setpoints (e.g., 300, 500, and 1200 rpm).  
-Discuss the effect of load torque disturbances and verify that the specifications (settling time = 2 s, overshoot < 10\%) are achieved.
+\subsubsection{Validation of the speed controller}
+
+The objective of this part is to evaluate the performance of the speed control loop implemented in \textsc{Matlab/Simulink} under different operating conditions.  
+The control law is tested with various speed setpoints $\Omega^\star(t)$ and with/without a load torque $C_r(t)$.
+
+\paragraph{Scenario 1:} $C_r(t)=0$, the setpoint $\Omega^\star(t)$ changes from $0$ to $300$~rpm at $t=1$~s.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/simulink3.png}
+\caption{Scenario 1 — $\Omega^\star(t)$ step from $0$ to $300$~rpm at $t=1$~s.}
+\label{fig:simulink3}
+\end{figure}
+
+\paragraph{Scenario 2:} $C_r(t)=0$, the setpoint $\Omega^\star(t)$ changes from $0$ to $500$~rpm at $t=1$~s.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/simulink4.png}
+\caption{Scenario 2 — $\Omega^\star(t)$ step from $0$ to $500$~rpm at $t=1$~s.}
+\label{fig:simulink4}
+\end{figure}
+
+\paragraph{Scenario 3:} $C_r(t)=0$, the setpoint $\Omega^\star(t)$ changes from $0$ to $1200$~rpm at $t=1$~s.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/simulink5.png}
+\caption{Scenario 3 — $\Omega^\star(t)$ step from $0$ to $1200$~rpm at $t=1$~s.}
+\label{fig:simulink5}
+\end{figure}
+
+\paragraph{Scenario 4:} The load torque $C_r(t)$ changes from $0$ to $5$~N·m at $t=10$~s, while the setpoint $\Omega^\star(t)$ changes from $0$ to $300$~rpm at $t=1$~s.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/simulink6.png}
+\caption{Scenario 4 — $\Omega^\star(t)$ step from $0$ to $300$~rpm at $t=1$~s with $C_r(t)$ disturbance at $t=10$~s.}
+\label{fig:simulink6}
+\end{figure}
+
+\paragraph{Analysis.}
+Each test allows evaluation of the system’s dynamic behavior in terms of rise time, overshoot, and steady–state accuracy.  
+Scenarios~1–3 demonstrate the controller’s response to increasing speed references, highlighting its bandwidth and saturation limits.  
+Scenario~4 evaluates the robustness of the controller to load disturbances, verifying that the integral component ensures steady–state compensation of $C_r$ while maintaining the desired speed.
+
 \subsubsection{Stability Margin Analysis}
 
 The stability of the designed LQ speed controller can be analyzed by examining the open-loop transfer function of the system defined by:
@@ -815,7 +855,7 @@ fprintf('Phase crossover frequency = %.2f rad/s\n', Wcp);
 
 \begin{figure}[H]
     \centering
-    % \includegraphics[width=0.85\linewidth]{bode_speed_loop.jpg}
+    \includegraphics[width=0.85\linewidth]{figures/bode.png}
     \caption{Bode diagram of the open-loop speed control system.}
     \label{fig:bode_speed_loop}
 \end{figure}
@@ -883,7 +923,6 @@ rank(QO_a)               % Check the observability rank
 
 \noindent The observability matrix has full rank $(\mathrm{rank}(QO_a)=3)$, confirming that the system is \textbf{observable}.
 
-
 \subsubsection{Selection of Observer Dynamics}
 
 According to the design requirements, the observer must be approximately three times faster than the speed control loop.  
@@ -908,6 +947,104 @@ lambda_obs = lambda_W;                   % Observer eigenvalues
 
 \noindent These eigenvalues ensure that the observer converges rapidly to the actual system states while maintaining numerical stability.
 
+\subsubsection{Observer design from current measurement and control input}
+
+We reconstruct the augmented state
+\[
+x_a=\begin{bmatrix} I & \Omega & C_r \end{bmatrix}^\top,
+\qquad y_a = V_I = K_{\mathrm{cap}I}\,I,
+\]
+using a Luenberger observer driven by the measured current \(y_a\) and the control \(u_c\).
+With the augmented plant
+\[
+\dot x_a = A_a x_a + B_a u_c, \qquad y_a = C_a x_a ,
+\]
+the observer is chosen as
+\[
+\boxed{\;
+\dot{\hat x}_a = (A_a - K_{\mathrm{obs}} C_a)\,\hat x_a + B_a u_c + K_{\mathrm{obs}}\,y_a,
+\qquad
+y_{\mathrm{obs}} = C_{\mathrm{obs}}\,\hat x_a,
+\;}
+\]
+where \(y_{\mathrm{obs}}=\begin{bmatrix}\hat I & \hat\Omega & \hat C_r\end{bmatrix}^\top\) and typically
+\(C_{\mathrm{obs}}=I_3\).
+The gain \(K_{\mathrm{obs}}\) is computed by pole placement to make the observer dynamics
+significantly faster than the plant (e.g., \(3\!-\!5\times\) the closed-loop bandwidth).
+
+Equivalently, grouping \(u_c\) and \(y_a\) as inputs,
+\[
+\dot{\hat x}_a = A_{\mathrm{obs}}\hat x_a + B_{\mathrm{obs}}
+\begin{bmatrix} u_c \\ y_a \end{bmatrix},
+\quad
+A_{\mathrm{obs}} = A_a - K_{\mathrm{obs}} C_a,\quad
+B_{\mathrm{obs}}=\begin{bmatrix} B_a & K_{\mathrm{obs}} \end{bmatrix}.
+\]
+
+\paragraph{MATLAB implementation (matching the above):}
+\begin{lstlisting}[language=Matlab]
+% Given: A_a, B_a, C_a, desired observer poles lambda_obs (1x3)
+K_obs = place(A_a', C_a', lambda_obs')';   % Luenberger gain
+
+A_obs = A_a - K_obs*C_a;                   % Observer A
+B_obs = [B_a, K_obs];                      % Inputs [u_c; y_a]
+C_obs = eye(3);                            % Outputs [Î; Ω̂; Ĉr]
+D_obs = zeros(3,2);
+\end{lstlisting}
+
+\noindent
+\textit{Notes.} (i) Ensure \((A_a,C_a)\) is observable. (ii) Choose \(\lambda_{\text{obs}}\) real or complex
+with negative real parts and magnitude \(3\!-\!5\) times larger than the controller poles to obtain fast,
+well-damped convergence of \([\hat I,\hat\Omega,\hat C_r]\) to their true values.
+
+\subsubsection{Observer implementation and convergence check}
+
+We implement a Luenberger observer that reconstructs the state
+\[
+x_c=\begin{bmatrix} I & \Omega & C_r \end{bmatrix}^\top
+\]
+from the measured armature current $V_I=K_{\mathrm{cap}I}\,I$ and the available control input $u_c$.
+With the augmented plant
+\[
+\dot x_c = A_c\,x_c + B_c\,u_c, \qquad y_c = C_c\,x_c \;\; (y_c=V_I),
+\]
+the observer is
+\[
+\dot{\hat x}_c = A_c\,\hat x_c + B_c\,u_c + K_{\mathrm{obs}}\,(y_c-\hat y_c),
+\qquad \hat y_c = C_c\,\hat x_c,
+\]
+where $K_{\mathrm{obs}}$ is chosen so that the observer poles are about three times faster than the
+current-loop poles (as required), ensuring rapid convergence.
+
+\paragraph{Convergence results.}
+Figures~\ref{fig:obs_I}–\ref{fig:obs_Cr} compare the estimated variables
+$\big[\hat I,\;\hat\Omega,\;\hat C_r\big]$ with their true values obtained from the simulator.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/simulinkcurrent.png}
+\caption{Current estimation: measured/true $I(t)$ vs.\ $\hat I(t)$. The estimate rapidly converges after a short transient.}
+\label{fig:obs_I}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/simulinkspeed.png}
+\caption{Speed estimation: true $\Omega(t)$ vs.\ $\hat\Omega(t)$. The reconstruction tracks the reference dynamics with small transient error.}
+\label{fig:obs_Omega}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/simulinkdisturbance.png}
+\caption{Disturbance torque estimation: true $C_r(t)$ vs.\ $\hat C_r(t)$. The observer converges to the (piecewise constant) applied disturbance.}
+\label{fig:obs_Cr}
+\end{figure}
+
+\paragraph{Comment.}
+Across all tests the estimated variables converge quickly to their true values, with only a brief
+initial transient and negligible steady-state bias, which validates the observer design and the choice of
+$K_{\mathrm{obs}}$ (fast poles).
 
 \subsubsection{Determination of the Observer Gain}
 
@@ -947,28 +1084,38 @@ C_obs = eye(3);
 D_obs = zeros(3,2);
 \end{verbatim}
 
+\subsection{Speed Regulation with Only Proportional Control and Static Compensation of the Resistant Torque with the Value Estimated by the Observer}
 
-\subsubsection{Determination of the Proportional Gain $K_{\Omega p}$}
+\subsubsection{Choice of eigenvalue and computation of $K_{\Omega p}$}
 
-To design the proportional speed controller, we start from the dynamic equation of the motor:
-\begin{equation*}
-J\frac{d\Omega(t)}{dt} = K_c I^*(t) - C_r(t) - f\,\Omega(t)
-\end{equation*}
-Assuming an ideal current loop ($I^*(t) = K_{\Omega p}(V_{\Omega}^*(t) - V_{\Omega}(t))$), we can express the system as:
-\begin{equation*}
-\frac{d\Omega(t)}{dt} = -\frac{f}{J}\Omega(t) + \frac{K_c}{J} I^*(t)
-\end{equation*}
-Replacing $I^*(t)$ by its control law gives a first-order model with the proportional gain $K_{\Omega p}$ as the tuning parameter.
+The speed dynamics under proportional control can be written as:
+\[
+\dot{\Omega}(t) = -\frac{f}{J}\Omega(t) + \frac{K_c}{K_{\text{cap}I}J}V_I^\ast(t) - \frac{1}{J}C_r(t),
+\]
+where $V_I^\ast(t)$ is the control variable of the outer loop.  
+Assuming $V_I^\ast(t) = -K_{\Omega p}\Omega(t)$ and neglecting disturbances, the closed-loop pole is:
+\[
+\lambda_{\text{cl}} = -\frac{f}{J} - \frac{K_c}{K_{\text{cap}I}J}K_{\Omega p}.
+\]
 
-\noindent\textbf{MATLAB implementation:}
+To ensure a stable yet responsive system while keeping the observer faster, the pole was experimentally chosen as:
+\[
+\lambda_{Wp} = -160.
+\]
+
+Using the system parameters from the identification phase and the MATLAB command:
 \begin{verbatim}
-% Question 2.4.a
-lambda_Wp = -160;                         % Desired closed-loop eigenvalue
-K_Wp = place(-f/J, Kc/(K_capI*J), lambda_Wp);  % Proportional gain computation
+lambda_Wp = -160;
+K_Wp = place(-f/J, Kc/(K_capI*J), lambda_Wp);
 \end{verbatim}
 
-The chosen eigenvalue $\lambda_{Wp} = -160$ provides a good trade-off between response speed and stability.  
-The resulting proportional gain ensures an adequately damped transient without oscillation.
+we obtain:
+\[
+\boxed{K_{\Omega p} = 2.48.}
+\]
+
+This gain provides a good compromise between speed of response and system stability.
+
 \subsubsection{Closed-Loop Response of the Proportional Speed Controller}
 
 The closed-loop dynamics of the speed loop without integral action are expressed as:
@@ -1008,7 +1155,7 @@ grid on
 
 \begin{figure}[H]
     \centering
-    % \includegraphics[width=0.85\linewidth]{speedloop_no_integral.jpg}
+    \includegraphics[width=0.85\linewidth]{figures/speedloop.png}
     \caption{Step response of the speed loop with proportional control only.}
     \label{fig:speedloop_no_integral}
 \end{figure}
