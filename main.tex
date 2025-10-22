@@ -1,6 +1,16 @@
 \documentclass{rapportCS}
 \usepackage{lipsum}
 \usepackage{booktabs}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{hyperref}
 \title{Control Theory Report} %Titre du fichier
 
 \begin{document}
@@ -285,11 +295,743 @@ This value will be used in the subsequent modeling and simulation stages to comp
 %------------ Section 2 ----------------
 
 \section{Controller Design and Validation by Simulations}
-\lipsum[4-6]
+
+\subsection{Current Regulation}
+\subsubsection{State-Space Model of the Augmented System}
+
+The armature circuit of the DC motor is governed by:
+\begin{equation*}
+U_m(t) = R\,I(t) + L\,\frac{dI(t)}{dt} + K_e\,\Omega(t)
+\end{equation*}
+and the converter is modeled as:
+\begin{equation*}
+U_m(t) = k_h\,u_c(t), \qquad k_h = 10
+\end{equation*}
+
+Hence, the current dynamics can be written as:
+\begin{equation*}
+\frac{dI(t)}{dt} = -\frac{R}{L}\,I(t) + \frac{k_h}{L}\,u_c(t) - \frac{K_e}{L}\,\Omega(t)
+\end{equation*}
+
+To ensure zero steady-state error, an integral action is introduced through the integral of the current error:
+\begin{equation*}
+x_{\varepsilon I}(t) = \int_0^t \big(V_{I^*}(\tau) - V_I(\tau)\big)\,d\tau
+\end{equation*}
+where the current sensor gives:
+\begin{equation*}
+V_I = K_{\mathrm{conv},I}\,I(t), \qquad K_{\mathrm{conv},I} = 0.1~\text{V/A}
+\end{equation*}
+Thus:
+\begin{equation*}
+\frac{dx_{\varepsilon I}(t)}{dt} = V_{I^*}(t) - V_I(t)
+\end{equation*}
+
+Define the augmented state vector and the output as:
+\begin{equation*}
+x_I(t) =
+\begin{bmatrix}
+I(t) \\[4pt]
+x_{\varepsilon I}(t)
+\end{bmatrix},
+\qquad
+y_I(t) = V_I(t) = K_{\mathrm{conv},I}\,I(t)
+\end{equation*}
+
+The augmented state-space model becomes:
+\begin{equation*}
+\frac{d}{dt}
+\begin{bmatrix}
+I \\[4pt]
+x_{\varepsilon I}
+\end{bmatrix}
+=
+\underbrace{
+\begin{bmatrix}
+-\dfrac{R}{L} & 0 \\[6pt]
+- K_{\mathrm{conv},I} & 0
+\end{bmatrix}}_{A_I}
+\begin{bmatrix}
+I \\[4pt]
+x_{\varepsilon I}
+\end{bmatrix}
++
+\underbrace{
+\begin{bmatrix}
+\dfrac{k_h}{L} \\[4pt]
+0
+\end{bmatrix}}_{B_I}
+u_c(t)
++
+\underbrace{
+\begin{bmatrix}
+0 \\[4pt]
+1
+\end{bmatrix}}_{B_I'}
+V_{I^*}(t)
++
+\underbrace{
+\begin{bmatrix}
+-\dfrac{K_e}{L} \\[4pt]
+0
+\end{bmatrix}}_{B_I''}
+\Omega(t)
+\end{equation*}
+
+The output equation is given by:
+\begin{equation*}
+y_I(t) =
+\underbrace{\begin{bmatrix}
+K_{\mathrm{conv},I} & 0
+\end{bmatrix}}_{C_I}
+x_I(t)
+\end{equation*}
+
+\noindent\textbf{Summary of matrices:}
+\begin{align*}
+A_I &=
+\begin{bmatrix}
+-\dfrac{R}{L} & 0 \\[4pt]
+- K_{\mathrm{conv},I} & 0
+\end{bmatrix},
+&
+B_I &=
+\begin{bmatrix}
+\dfrac{k_h}{L} \\[4pt]
+0
+\end{bmatrix},\\[6pt]
+B_I' &=
+\begin{bmatrix}
+0 \\[4pt]
+1
+\end{bmatrix},
+&
+B_I'' &=
+\begin{bmatrix}
+-\dfrac{K_e}{L} \\[4pt]
+0
+\end{bmatrix},\\[6pt]
+C_I &=
+\begin{bmatrix}
+K_{\mathrm{conv},I} & 0
+\end{bmatrix}
+\end{align*}
+
+\noindent\textbf{Controllability:}
+The controllability matrix is:
+\[
+\mathcal{C} = [B_I \;\; A_I B_I]
+= 
+\begin{bmatrix}
+\dfrac{k_h}{L} & -\dfrac{R\,k_h}{L^2} \\[6pt]
+0 & -\dfrac{K_{\mathrm{conv},I}\,k_h}{L}
+\end{bmatrix}
+\]
+The determinant is:
+\[
+\det(\mathcal{C}) = -\frac{K_{\mathrm{conv},I}\,k_h^2}{L^2} \neq 0
+\]
+Therefore, the augmented system is \textbf{controllable}.
 
 
 
+\subsubsection{Characteristic Polynomial and Desired Poles}
 
+The design requirements for the current control loop are:
+\begin{itemize}
+    \item Settling time: $T_s = 0.1~\mathrm{s}$
+    \item Overshoot: $M_p < 10\%$
+\end{itemize}
+
+A damping ratio of $\zeta_I = 0.7$ is chosen to satisfy the overshoot specification.  
+From the second-order system relationship:
+\begin{equation*}
+T_s \approx \frac{4}{\zeta_I \omega_{nI}}
+\end{equation*}
+the natural frequency is obtained as:
+\begin{equation*}
+\omega_{nI} = \frac{4}{\zeta_I T_s} = \frac{4}{0.7 \times 0.1} \approx 57.1~\mathrm{rad/s}
+\end{equation*}
+
+The desired characteristic polynomial for the current loop is:
+\begin{equation*}
+\lambda^2 + 2\zeta_I \omega_{nI}\lambda + \omega_{nI}^2 = 0
+\end{equation*}
+\begin{equation*}
+\lambda^2 + 80\,\lambda + 3267 = 0
+\end{equation*}
+
+The corresponding desired eigenvalues (poles) are:
+\begin{equation*}
+\lambda_{1,2} = -\zeta_I \omega_{nI} \pm j\,\omega_{nI}\sqrt{1-\zeta_I^2}
+\approx -40.0 \pm j\,40.8
+\end{equation*}
+
+In MATLAB, these values are obtained using:
+\begin{verbatim}
+zeta_I = 0.7;                     % Damping coefficient of the current loop
+omega_nI = 4 / (0.7 * 0.1);       % Natural frequency of the current loop
+lambda_I = roots([1 2*zeta_I*omega_nI omega_nI^2]);
+\end{verbatim}
+
+Thus, the desired complex conjugate poles ensuring the specified dynamic response are located at:
+\[
+\boxed{\lambda_{1,2} = -40.0 \pm j\,40.8}
+\]
+
+
+\subsubsection{Control Law by State Feedback}
+
+The control law for the current loop is defined as:
+\begin{equation*}
+u_c(t) = -K_I\,x_I(t) = -[K_{I1}\; K_{I2}]
+\begin{bmatrix}
+I(t) \\[4pt]
+x_{\varepsilon I}(t)
+\end{bmatrix}
+\end{equation*}
+
+The gain vector $K_I$ is determined by pole placement in order to obtain the desired dynamic performance, corresponding to the eigenvalues found in Question~2.1.b.
+
+Using MATLAB, the computation is performed as:
+\begin{verbatim}
+K_I = place(A_I, B_I, lambda_I);  % Find the controller gain for state feedback
+e = eig(A_I - B_I*K_I);           % Verify the closed-loop poles
+\end{verbatim}
+
+This function determines the feedback gain matrix $K_I = [K_{I1}\; K_{I2}]$ such that the closed-loop system matrix
+\begin{equation*}
+A_{cl} = A_I - B_I K_I
+\end{equation*}
+has the desired eigenvalues
+\begin{equation*}
+\lambda_{1,2} = -40 \pm j\,40.8
+\end{equation*}
+
+The resulting control law ensures that the current loop exhibits a fast and well-damped response, in accordance with the specified settling time ($T_s = 0.1~\mathrm{s}$) and overshoot ($M_p < 10\%$).
+\subsubsection{Validation with the Synthesis Model}
+
+The closed-loop model of the current loop is validated using the state-space representation obtained in the previous steps.  
+The closed-loop system matrix is given by:
+\[
+A_{\mathrm{bf\_I}} = A_I - B_I K_I
+\]
+and the corresponding state-space model is defined in MATLAB as:
+
+\begin{verbatim}
+Abf_I = A_I - B_I*K_I;            % Closed-loop state matrix
+Bbf_I = [0; 1];                   % Input matrix for current reference
+Cbf_I = [1 0];                    % Output matrix (current measurement)
+Dbf_I = 0;                        % Direct transmission term
+sys_bf_I = ss(Abf_I, Bbf_I, Cbf_I, Dbf_I);  % Closed-loop system
+
+Iref = 20;                        % Current reference (A)
+VRef = Iref * k_capI;             % Convert Iref to Vref using current sensor gain
+opt = stepDataOptions('StepAmplitude', VRef);
+[y_step_I, t_step_I, x_step_I] = step(sys_bf_I, opt);   % Step response
+u_step_I = -K_I * x_step_I';      % Control voltage (state feedback law)
+
+% Plotting the current and voltage responses
+figure(1)
+subplot(2,1,1)
+plot(t_step_I, y_step_I, 'b', 'LineWidth', 2)
+grid on
+ylabel('Current (A)')
+title('Response of the current loop')
+
+subplot(2,1,2)
+plot(t_step_I, k_h*u_step_I, 'r', 'LineWidth', 2)
+grid on
+ylabel('Voltage (V)')
+xlabel('Time (s)')
+\end{verbatim}
+
+The resulting simulation plots are shown in Figures~\ref{fig:current_response} and~\ref{fig:voltage_response}.
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.85\linewidth]{
+    % .jpg}
+    \caption{Step response of the current loop to a setpoint of 20~A.}
+    \label{fig:current_response}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.85\linewidth]{voltage_response.jpg}
+    \caption{Control voltage applied by the converter during the transient.}
+    \label{fig:voltage_response}
+\end{figure}
+
+\noindent\textbf{Analysis of the results:}
+
+The step response of the current loop shows that:
+\begin{itemize}
+    \item The current reaches its steady-state value of 20~A in approximately \textbf{0.1~s}.
+    \item The overshoot is around \textbf{10\%}, corresponding to the damping ratio $\zeta_I = 0.7$.
+    \item The system exhibits a well-damped second-order behavior with no steady-state error.
+\end{itemize}
+
+The control voltage (bottom plot) shows a smooth transient reaching about \textbf{8–9~V} before settling near 6~V once the current reaches 20~A.  
+This confirms that the designed state-feedback controller ensures a fast and stable current loop, satisfying the required specifications:
+\[
+T_s \approx 0.1~\text{s}, \quad M_p < 10\%.
+\]
+
+Hence, the performance objectives for the current loop are successfully met.
+
+
+% Removed stray numbered section placeholder
+\subsection{Speed Regulation by a Controller with Integrator}
+\subsubsection{State-Space Model of the Augmented System}
+
+Assuming an ideal current loop, the speed dynamics of the DC motor are given by:
+\begin{equation*}
+J\frac{d\Omega(t)}{dt} = K_c V_I^*(t) - C_r(t) - f\,\Omega(t)
+\end{equation*}
+
+The speed measurement is expressed as:
+\begin{equation*}
+V_\Omega(t) = K_{\mathrm{cap},\Omega}\,\Omega(t)
+\end{equation*}
+
+To ensure zero steady-state error and disturbance rejection, an integral of the speed error is introduced:
+\begin{equation*}
+x_{\varepsilon \Omega}(t) = \int_0^t \big(V_{\Omega^*}(\tau) - V_\Omega(\tau)\big)\,d\tau
+\end{equation*}
+
+The state vector and output are defined as:
+\begin{equation*}
+x_\Omega(t) =
+\begin{bmatrix}
+\Omega(t) \\[4pt]
+x_{\varepsilon \Omega}(t)
+\end{bmatrix},
+\qquad
+y_\Omega(t) = V_\Omega(t) = K_{\mathrm{cap},\Omega}\,\Omega(t)
+\end{equation*}
+
+The augmented state-space model becomes:
+\begin{equation*}
+\frac{d}{dt}
+\begin{bmatrix}
+\Omega \\[4pt]
+x_{\varepsilon \Omega}
+\end{bmatrix}
+=
+\underbrace{
+\begin{bmatrix}
+-\dfrac{f}{J} & 0 \\[6pt]
+- K_{\mathrm{cap},\Omega} & 0
+\end{bmatrix}}_{A_\Omega}
+\begin{bmatrix}
+\Omega \\[4pt]
+x_{\varepsilon \Omega}
+\end{bmatrix}
++
+\underbrace{
+\begin{bmatrix}
+\dfrac{K_c}{J} \\[4pt]
+0
+\end{bmatrix}}_{B_\Omega}
+V_I^*(t)
++
+\underbrace{
+\begin{bmatrix}
+0 \\[4pt]
+1
+\end{bmatrix}}_{B'_\Omega}
+V_{\Omega^*}(t)
++
+\underbrace{
+\begin{bmatrix}
+-\dfrac{1}{J} \\[4pt]
+0
+\end{bmatrix}}_{B''_\Omega}
+C_r(t)
+\end{equation*}
+
+and
+\begin{equation*}
+y_\Omega(t) =
+\underbrace{
+\begin{bmatrix}
+K_{\mathrm{cap},\Omega} & 0
+\end{bmatrix}}_{C_\Omega}
+x_\Omega(t)
+\end{equation*}
+
+\noindent\textbf{Controllability:}
+\[
+\mathcal{C}_\Omega = [B_\Omega \;\; A_\Omega B_\Omega]
+=
+\begin{bmatrix}
+\dfrac{K_c}{J} & -\dfrac{f K_c}{J^2} \\[6pt]
+0 & -\dfrac{K_{\mathrm{cap},\Omega} K_c}{J}
+\end{bmatrix}
+\]
+with
+\[
+\det(\mathcal{C}_\Omega) = -\frac{K_{\mathrm{cap},\Omega} K_c^2}{J^2} \neq 0
+\]
+Therefore, the augmented system is \textbf{controllable}.
+
+\subsubsection{LQ Control Design}
+
+The control law is defined as:
+\begin{equation*}
+V_I^*(t) = -K_\Omega\,x_\Omega(t)
+= -[K_{\Omega1}\; K_{\Omega2}]
+\begin{bmatrix}
+\Omega(t) \\[4pt] x_{\varepsilon\Omega}(t)
+\end{bmatrix}
+\end{equation*}
+
+The feedback gain $K_\Omega$ is obtained using the Linear Quadratic (LQ) approach, which minimizes the cost function:
+\begin{equation*}
+J(t) = \int_0^\infty \big(x_\Omega^T Q x_\Omega + r \,(V_I^*(t))^2\big)\,dt
+\end{equation*}
+where $Q = \mathrm{diag}(q_1, q_2)$ and $r$ are the weighting factors.
+
+A stabilizing solution exists if $(A_\Omega,B_\Omega)$ is controllable (verified in Question~2.2.a) and if
+$Q$ is positive semi-definite and $r>0$.
+
+\noindent\textbf{Normalization of the state variables:}
+\begin{itemize}
+    \item $\Omega_{\max} = 1500~\mathrm{rpm} = 1500 \times 2\pi / 60$
+    \item $V_{W_{\max}} = \Omega_{\max} \times K_{\mathrm{cap},\Omega}$
+    \item $x_{\varepsilon\Omega,\max} = 0.5\,V_{W_{\max}} \times 0.2$
+    \item $U_{\max} = 4~\mathrm{V}$
+\end{itemize}
+
+These limits are used to normalize the state and control variables prior to tuning the weighting matrices.
+
+\noindent\textbf{MATLAB implementation:}
+\begin{verbatim}
+%% Question 2.2.b : LQ approach
+
+% Normalization of the state variables
+omega_max = 1500*2*pi/60;          % Maximum speed (rad/s)
+VW_max = omega_max*K_capW;         % Max speed sensor voltage
+q_wmax = 0.5*VW_max*0.2;           % Max integral of the error
+U_max = 4;                         % Max control voltage (V)
+
+% Scaling matrices
+Qn_lq = [1/omega_max 0; 0 1/q_wmax]; 
+Rn_lq = 1/U_max;
+
+% Base weighting matrices
+Q_tilda_lq = [100 0; 0 200];
+R_tilda_lq = 1;
+
+% Normalized LQ matrices
+Q_lq = Qn_lq * Q_tilda_lq * Qn_lq;
+R_lq = Rn_lq * R_tilda_lq * Rn_lq;
+
+% Compute LQ gain
+K_W = lqr(A_W, B_W, Q_lq, R_lq);
+\end{verbatim}
+
+\noindent The function \texttt{lqr()} returns the optimal feedback gain vector
+$K_\Omega = [0.417\; -69.13]$ that minimizes $J(t)$ and ensures
+a stable closed-loop behavior.
+
+\noindent\textbf{Effect of weighting factors:}
+\begin{itemize}
+    \item Increasing $q_1$ emphasizes faster speed tracking but may cause larger control efforts.
+    \item Increasing $q_2$ improves disturbance rejection (faster integral action).
+    \item Increasing $r$ reduces the control voltage amplitude but slows down the response.
+\end{itemize}
+
+A suitable balance between $Q$ and $r$ results in a settling time close to
+$2~\mathrm{s}$ and an overshoot below $10\%$, as required by the design specifications.
+
+
+\subsection{Simulation and Performance Evaluation}
+Simulate the closed-loop system for different setpoints (e.g., 300, 500, and 1200 rpm).  
+Discuss the effect of load torque disturbances and verify that the specifications (settling time = 2 s, overshoot < 10\%) are achieved.
+\subsubsection{Stability Margin Analysis}
+
+The stability of the designed LQ speed controller can be analyzed by examining the open-loop transfer function of the system defined by:
+\begin{equation*}
+\dot{x}_\Omega(t) = A_\Omega x_\Omega(t) + B_\Omega u(t),
+\qquad
+y(t) = K_\Omega x_\Omega(t)
+\end{equation*}
+
+The open-loop system is implemented in MATLAB and converted to a transfer function form to determine the gain and phase margins using the \texttt{margin()} function.
+
+\noindent\textbf{MATLAB implementation:}
+\begin{verbatim}
+% Question 2.2.d : Stability margin analysis
+
+C_bo = K_W;              % Controller acts as output matrix
+D_bo = 0;                % No direct transmission term
+sys_bo = ss(A_W, B_W, C_bo, D_bo);  % Open-loop state-space model
+G_bo = tf(sys_bo);       % Convert to transfer function
+
+figure(3)
+margin(G_bo);            % Bode plot with margins
+grid on
+
+[GM, PM, Wcg, Wcp] = margin(G_bo);
+fprintf('\n--- Stability margins ---\n');
+fprintf('Gain margin = %.2f dB\n', 20*log10(GM));
+fprintf('Phase margin = %.2f°\n', PM);
+fprintf('Gain crossover frequency = %.2f rad/s\n', Wcg);
+fprintf('Phase crossover frequency = %.2f rad/s\n', Wcp);
+\end{verbatim}
+
+\noindent\textbf{Obtained results:}
+\begin{itemize}
+    \item Gain margin: $\infty~\mathrm{dB}$
+    \item Phase margin: $73.31^{\circ}$
+    \item Gain crossover frequency: not defined (system always stable)
+    \item Phase crossover frequency: $28.54~\mathrm{rad/s}$
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.85\linewidth]{bode_speed_loop.jpg}
+    \caption{Bode diagram of the open-loop speed control system.}
+    \label{fig:bode_speed_loop}
+\end{figure}
+
+\noindent\textbf{Interpretation of results:}
+\begin{itemize}
+    \item The infinite gain margin indicates that the system remains stable for all practical gain variations — the open-loop gain does not cross 0~dB.
+    \item The phase margin of $73.3^{\circ}$ demonstrates a high robustness and well-damped transient response.
+    \item The crossover frequency of $28.5~\mathrm{rad/s}$ defines the approximate bandwidth of the speed loop, ensuring sufficient speed-tracking capability without excessive oscillations.
+\end{itemize}
+
+In conclusion, the LQ-designed controller provides a highly stable and robust speed control system, satisfying the required performance criteria for both stability and dynamic behavior.
+
+\subsection{Design of an Observer Capable of Reconstructing the Resistant Torque}
+\subsubsection{Augmented System and Observability}
+
+The augmented state-space model of the DC machine used for the observer design is given by:
+\begin{equation*}
+\frac{d x_a(t)}{dt} = A_a x_a(t) + B_a u_c(t), \qquad y_a(t) = C_a x_a(t)
+\end{equation*}
+where the state vector and output are:
+\[
+x_a = 
+\begin{bmatrix}
+I \\[4pt] \Omega \\[4pt] C_r
+\end{bmatrix}, 
+\quad
+y_a = V_I
+\]
+
+The matrices of the augmented system are defined as:
+\begin{equation*}
+A_a = 
+\begin{bmatrix}
+-\dfrac{R}{L} & -\dfrac{K_c}{L} & 0 \\[6pt]
+\dfrac{K_c}{J} & -\dfrac{f}{J} & -\dfrac{1}{J} \\[6pt]
+0 & 0 & 0
+\end{bmatrix},
+\quad
+B_a =
+\begin{bmatrix}
+\dfrac{k_h}{L} \\[4pt] 0 \\[4pt] 0
+\end{bmatrix},
+\quad
+C_a = 
+\begin{bmatrix}
+K_{\mathrm{cap}I} & 0 & 0
+\end{bmatrix},
+\quad
+D_a = \mathbf{0}_{3\times1}
+\end{equation*}
+
+\noindent\textbf{MATLAB implementation:}
+\begin{verbatim}
+A_a = [-R/L  -Kc/L  0;
+        Kc/J  -f/J  -1/J;
+        0      0     0];
+B_a = [kh/L; 0; 0];
+C_a = [K_capI 0 0];
+D_a = zeros(3,1);
+
+QO_a = obsv(A_a, C_a);   % Observability matrix
+rank(QO_a)               % Check the observability rank
+\end{verbatim}
+
+\noindent The observability matrix has full rank $(\mathrm{rank}(QO_a)=3)$, confirming that the system is \textbf{observable}.
+
+
+\subsubsection{Selection of Observer Dynamics}
+
+According to the design requirements, the observer must be approximately three times faster than the speed control loop.  
+The damping ratio and crossover frequency are set as:
+\[
+\zeta_{\mathrm{n}\Omega} = 0.7, \qquad \omega_{\mathrm{n}\Omega} = \frac{3\times4}{0.7\times0.1}
+\]
+The desired observer eigenvalues are then computed from the characteristic polynomial:
+\[
+\lambda^2 + 2\zeta_{\mathrm{n}\Omega}\omega_{\mathrm{n}\Omega}\lambda + \omega_{\mathrm{n}\Omega}^2 = 0
+\]
+and an additional third eigenvalue is added, chosen to be twice as fast as the previous ones.
+
+\noindent\textbf{MATLAB implementation:}
+\begin{verbatim}
+zeta_nW = 0.7;                           % Damping coefficient
+omega_nW = 3*4/(0.7*0.1);                % Crossover frequency
+lambda_W = roots([1, 2*zeta_nW*omega_nW, omega_nW^2]);
+lambda_W = [lambda_W; sum(lambda_W)];    % Add a faster 3rd pole
+lambda_obs = lambda_W;                   % Observer eigenvalues
+\end{verbatim}
+
+\noindent These eigenvalues ensure that the observer converges rapidly to the actual system states while maintaining numerical stability.
+
+
+\subsubsection{Determination of the Observer Gain}
+
+The observer gain $K_{\mathrm{obs}}$ is computed by pole placement, ensuring the desired dynamic performance.  
+Using the transposed system matrices, we find:
+\begin{equation*}
+K_{\mathrm{obs}} = \texttt{place}(A_a', C_a', \lambda_{\mathrm{obs}})'
+\end{equation*}
+
+\noindent\textbf{MATLAB implementation:}
+\begin{verbatim}
+K_obs = place(A_a', C_a', lambda_obs);   % Observer gain (transpose form)
+K_obs = K_obs';                          % Convert to column vector
+\end{verbatim}
+
+The resulting observer equations are:
+\begin{equation*}
+\frac{d\hat{x}_a(t)}{dt}
+= (A_a - K_{\mathrm{obs}} C_a)\hat{x}_a(t)
++ B_a u_c(t)
++ K_{\mathrm{obs}} y_a(t)
+\end{equation*}
+
+The corresponding matrices of the observer are:
+\begin{align*}
+A_{\mathrm{obs}} &= A_a - K_{\mathrm{obs}} C_a \\[4pt]
+B_{\mathrm{obs}} &= [\,B_a \;\; K_{\mathrm{obs}}\,] \\[4pt]
+C_{\mathrm{obs}} &= I_{3\times3} \\[4pt]
+D_{\mathrm{obs}} &= \mathbf{0}_{3\times2}
+\end{align*}
+
+\noindent\textbf{MATLAB implementation:}
+\begin{verbatim}
+A_obs = A_a - K_obs*C_a;
+B_obs = [B_a, K_obs];
+C_obs = eye(3);
+D_obs = zeros(3,2);
+\end{verbatim}
+
+
+\subsubsection{Determination of the Proportional Gain $K_{\Omega p}$}
+
+To design the proportional speed controller, we start from the dynamic equation of the motor:
+\begin{equation*}
+J\frac{d\Omega(t)}{dt} = K_c I^*(t) - C_r(t) - f\,\Omega(t)
+\end{equation*}
+Assuming an ideal current loop ($I^*(t) = K_{\Omega p}(V_{\Omega}^*(t) - V_{\Omega}(t))$), we can express the system as:
+\begin{equation*}
+\frac{d\Omega(t)}{dt} = -\frac{f}{J}\Omega(t) + \frac{K_c}{J} I^*(t)
+\end{equation*}
+Replacing $I^*(t)$ by its control law gives a first-order model with the proportional gain $K_{\Omega p}$ as the tuning parameter.
+
+\noindent\textbf{MATLAB implementation:}
+\begin{verbatim}
+% Question 2.4.a
+lambda_Wp = -160;                         % Desired closed-loop eigenvalue
+K_Wp = place(-f/J, Kc/(K_capI*J), lambda_Wp);  % Proportional gain computation
+\end{verbatim}
+
+The chosen eigenvalue $\lambda_{Wp} = -160$ provides a good trade-off between response speed and stability.  
+The resulting proportional gain ensures an adequately damped transient without oscillation.
+\subsubsection{Closed-Loop Response of the Proportional Speed Controller}
+
+The closed-loop dynamics of the speed loop without integral action are expressed as:
+\begin{equation*}
+\frac{d\Omega(t)}{dt} =
+\left(-\frac{f}{J} - \frac{K_{\Omega p}K_{\mathrm{cap},\Omega}K_c}{J K_{\mathrm{cap},I}}\right)\Omega(t)
++ \frac{K_{\Omega p} K_c}{J K_{\mathrm{cap},I}} V_{\Omega}^*(t)
+\end{equation*}
+
+\noindent\textbf{MATLAB implementation:}
+\begin{verbatim}
+% Question 2.4.b : Closed-loop simulation
+A_bfW = -f/J - K_Wp * K_capW * Kc / (K_capI * J);
+B_bfW = K_Wp * Kc / (K_capI * J);
+C_bfW = 1;
+D_bfW = 0;
+sys_bf_KW = ss(A_bfW, B_bfW, C_bfW, D_bfW);
+
+VWref_amp = K_capW * 300 * pi / 30;       % Speed reference amplitude (300 rpm)
+opt = stepDataOptions('StepAmplitude', VWref_amp);
+[y_step_KW, t_step_KW, x_step_KW] = step(sys_bf_KW, opt);
+u_step_KW = K_Wp * (VWref_amp - x_step_KW * K_capW); % Control voltage
+
+figure(4)
+subplot(2,1,1)
+plot(t_step_KW, y_step_KW * 30/pi, 'b', 'LineWidth', 2)
+ylabel('Speed (r/min)')
+title('Response of the speed loop without integral action')
+grid on
+
+subplot(2,1,2)
+plot(t_step_KW, 10*u_step_KW, 'r', 'LineWidth', 2)
+ylabel('Current (A)')
+xlabel('Time (s)')
+grid on
+\end{verbatim}
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.85\linewidth]{speedloop_no_integral.jpg}
+    \caption{Step response of the speed loop with proportional control only.}
+    \label{fig:speedloop_no_integral}
+\end{figure}
+
+\noindent\textbf{Interpretation of results:}
+\begin{itemize}
+    \item The speed increases smoothly to the reference of 300~r/min with no overshoot.
+    \item The current decreases exponentially as the speed rises, consistent with motor dynamics.
+    \item The system behaves as a first-order response with a short settling time (less than 0.7~s).
+\end{itemize}
+
+The proportional control ensures a stable response, but a small steady-state error remains due to the lack of integral action.
+\subsubsection{Steady-State Error and Torque Compensation}
+
+In steady state, the error can be analyzed from the equilibrium condition of the closed-loop equation:
+\[
+0 = 
+\left(-\frac{f}{J} - \frac{K_{\Omega p}K_{\mathrm{cap},\Omega}K_c}{J K_{\mathrm{cap},I}}\right)\Omega_{\mathrm{ss}}
++ \frac{K_{\Omega p} K_c}{J K_{\mathrm{cap},I}} V_{\Omega}^*
+\]
+which yields:
+\[
+\Omega_{\mathrm{ss}} =
+\frac{K_{\Omega p} K_c / K_{\mathrm{cap},I}}{f + K_{\Omega p} K_{\mathrm{cap},\Omega} K_c / K_{\mathrm{cap},I}} \, V_{\Omega}^*
+\]
+
+\noindent\textbf{MATLAB implementation:}
+\begin{verbatim}
+% Question 2.4.c : Calculation of the steady-state error
+Omega_ss = dcgain(sys_bf_KW) * VWref_amp;    % Steady-state speed (rad/s)
+Val_finale = Omega_ss * 30/pi;               % Convert to rpm
+erreur = 300 - Val_finale;                   % Steady-state error (rpm)
+\end{verbatim}
+
+\noindent\textbf{Interpretation:}
+\begin{itemize}
+    \item The proportional control leaves a small steady-state error proportional to the load torque $C_r$.
+    \item Increasing $K_{\Omega p}$ reduces this error, but too high a value may cause instability.
+    \item To eliminate the effect of $C_r$, a static compensation term proportional to the estimated torque $\hat{C}_r$ can be introduced:
+    \[
+    V_{\Omega}^* = K_{\Omega p}(\Omega^* - \Omega) + \frac{K_c}{K_{\mathrm{cap},I}} \hat{C}_r
+    \]
+\end{itemize}
+
+\noindent\textbf{Conclusion:}
+The proportional controller alone ensures fast dynamics and good damping but cannot eliminate steady-state error.  
+Introducing a torque compensation term or an integral action in the speed loop is required for perfect tracking.
 
 \newpage
 %------------ Section 3 ----------------
@@ -430,36 +1172,7 @@ It demonstrated the fundamental principles of cascaded control and observer desi
 
 
 \newpage
-%------------ Additional Examples ----------------
 
-\section{Additional Examples}
-
-
-
-%------------- Useful Commands ----------------
-
-\section{Useful Commands}
-
-Here are some useful commands:
-
-%------ To insert and cite a centered image -----
-
-\insererfigure{logos/logoCS.png}{3cm}{Figure caption}{Figure label}
-% First argument is the path to the image
-% Second is the image height
-% Third is the caption
-% Fourth is the label
-
-Here, I cite the image \ref{fig: Figure label}
-
-
-%------- To insert and cite an equation --------------
-
-\begin{equation} \label{eq: example}
-\rho + \Delta = 42
-\end{equation}
-
-Equation \ref{eq: example} is cited here. 
 
 
 
