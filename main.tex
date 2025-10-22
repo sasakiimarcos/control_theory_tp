@@ -40,7 +40,13 @@ Marcos Ichiro SASAKI}
 \vspace*{\stretch{1}}
 \begin{center}
 	\begin{abstract}
-        \lipsum[1-2]
+        This practical work focuses on the modeling, control, and experimental validation of a DC electrical drive system. The objective was to design and implement cascaded control strategies capable of regulating the motor’s speed and current with high precision. The study began with the identification of the motor’s electrical and mechanical parameters — including resistance, inductance, torque and voltage constants, friction coefficients, and moment of inertia — which provided the foundation for accurate system modeling.
+
+A two-level control structure was developed: an inner current loop designed via pole placement to achieve fast and stable current regulation, and an outer speed loop tuned using both linear quadratic (LQ) and proportional control strategies. An observer was then implemented to estimate unmeasured variables such as speed and load torque, improving disturbance rejection and enabling feed-forward compensation.
+
+Simulations were performed in MATLAB/Simulink to validate the theoretical designs under various operating conditions, including load disturbances and setpoint variations. The experimental implementation confirmed the robustness of the controllers, demonstrating low overshoot, minimal steady-state error, and good dynamic performance. The observer-based compensation was also evaluated, showing effective convergence in simulation and practical limitations due to measurement noise.
+
+Overall, the project successfully bridged theoretical control design with real-world application, illustrating the integration of modeling, simulation, and experimental testing in modern electromechanical systems.
     \end{abstract}
 \end{center}
 \vspace*{\stretch{1}}
