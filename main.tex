@@ -1168,37 +1168,53 @@ grid on
 \end{itemize}
 
 The proportional control ensures a stable response, but a small steady-state error remains due to the lack of integral action.
-\subsubsection{Steady-State Error and Torque Compensation}
+\subsubsection{Steady-state error with proportional control only}
 
-In steady state, the error can be analyzed from the equilibrium condition of the closed-loop equation:
-\[
-0 = 
-\left(-\frac{f}{J} - \frac{K_{\Omega p}K_{\mathrm{cap},\Omega}K_c}{J K_{\mathrm{cap},I}}\right)\Omega_{\mathrm{ss}}
-+ \frac{K_{\Omega p} K_c}{J K_{\mathrm{cap},I}} V_{\Omega}^*
-\]
-which yields:
-\[
-\Omega_{\mathrm{ss}} =
-\frac{K_{\Omega p} K_c / K_{\mathrm{cap},I}}{f + K_{\Omega p} K_{\mathrm{cap},\Omega} K_c / K_{\mathrm{cap},I}} \, V_{\Omega}^*
-\]
+With proportional speed control and the compensation of $C_r$ disabled, the closed-loop is first order and exhibits a non-zero steady-state error composed of:
+(i) a term \emph{independent} of $C_r$ (due to finite loop gain), which decreases as $K_{\Omega p}$ increases but cannot be fully cancelled; and
+(ii) a term \emph{proportional} to $C_r$, which requires explicit compensation (see 2.4.d). \,
 
-\noindent\textbf{MATLAB implementation:}
+\paragraph{Numerical evaluation (no disturbance, $C_r=0$).}
+For a speed reference of $300\,\mathrm{rpm}$, the MATLAB computation
 \begin{verbatim}
-% Question 2.4.c : Calculation of the steady-state error
-Omega_ss = dcgain(sys_bf_KW) * VWref_amp;    % Steady-state speed (rad/s)
-Val_finale = Omega_ss * 30/pi;               % Convert to rpm
-erreur = 300 - Val_finale;                   % Steady-state error (rpm)
+Omega_ss = dcgain(sys_bf_KW) * VWref_amp;  % rad/s
+Val_finale = Omega_ss * 30/pi;              % rpm
+erreur = 300 - Val_finale;                  % rpm
 \end{verbatim}
+gives $\Omega_{\text{ss}}=31.1538~\mathrm{rad/s}$, i.e.
+\[
+\Omega_{\text{ss}} = 31.1538 \cdot \frac{30}{\pi} \approx 297.50~\mathrm{rpm},
+\quad
+e_{\text{ss}} = 300 - 297.50 \approx \boxed{2.50~\mathrm{rpm}}.
+\]
 
-\noindent\textbf{Interpretation:}
+\paragraph{Simulink observations (with $C_r$ compensation \emph{deactivated}).}
+Using \texttt{TPVitessePartie24.slx}, remove the link from the \texttt{K\_capI/Kc} block output (disables $C_r$ feedforward):
 \begin{itemize}
-    \item The proportional control leaves a small steady-state error proportional to the load torque $C_r$.
-    \item Increasing $K_{\Omega p}$ reduces this error, but too high a value may cause instability.
-    \item To eliminate the effect of $C_r$, a static compensation term proportional to the estimated torque $\hat{C}_r$ can be introduced:
-    \[
-    V_{\Omega}^* = K_{\Omega p}(\Omega^* - \Omega) + \frac{K_c}{K_{\mathrm{cap},I}} \hat{C}_r
-    \]
+  \item \textbf{Nominal gain} $K_{\Omega p}$: the response tracks $300\,\mathrm{rpm}$ with a small residual offset $\approx 2.5\,\mathrm{rpm}$; see Fig.~\ref{fig:kw}.
+  \item \textbf{Halved gain} $K_{\Omega p}/2$: the steady-state error increases and the response slows down (error scales roughly inversely with the proportional gain); see Fig.~\ref{fig:kwdiv2}.
+  \item When $C_r$ steps from $0$ to $5~\mathrm{N\,m}$ at $t=10\,\mathrm{s}$, a permanent offset appears (the second error term), confirming the need for the compensation in 2.4.d. \,
 \end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=.8\linewidth]{figures/kw}
+  \caption{Speed response with $K_{\Omega p}$ (compensation disabled).}
+  \label{fig:kw}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=.8\linewidth]{figures/kwdiv2}
+  \caption{Speed response with $K_{\Omega p}/2$ (compensation disabled).}
+  \label{fig:kwdiv2}
+\end{figure}
+
+
+
+
+
+
 
 \noindent\textbf{Conclusion:}
 The proportional controller alone ensures fast dynamics and good damping but cannot eliminate steady-state error.  
@@ -1338,41 +1354,6 @@ Overall, this practical work successfully connected theoretical modeling, simula
 It demonstrated the fundamental principles of cascaded control and observer design, and showed how these techniques can be adapted for real-world electrical drives, where nonlinearity, friction, and converter effects must be carefully handled to ensure system stability and precision.
 
 
-
-
-
-
-\newpage
-%------------ Additional Examples ----------------
-
-\section{Additional Examples}
-
-
-
-%------------- Useful Commands ----------------
-
-\section{Useful Commands}
-
-Here are some useful commands:
-
-%------ To insert and cite a centered image -----
-
-\insererfigure{logos/logoCS.png}{3cm}{Figure caption}{Figure label}
-% First argument is the path to the image
-% Second is the image height
-% Third is the caption
-% Fourth is the label
-
-Here, I cite the image \ref{fig: Figure label}
-
-
-%------- To insert and cite an equation --------------
-
-\begin{equation} \label{eq: example}
-\rho + \Delta = 42
-\end{equation}
-
-Equation \ref{eq: example} is cited here. 
 
 
 
