@@ -258,37 +258,36 @@ These friction parameters will be used in the motor model and subsequent control
 
 \subsection{Moment of Inertia of the System: $J$}
 
-When the control signal is removed, the motor supply is cut and the rotor slows down under the effect of friction only. The dynamic equation governing the deceleration is:
+When the control signal is removed, the motor supply is cut and the rotor slows down under the effect of friction only. The deceleration obeys
 \[
-J\,\dot{\Omega} + f\,\Omega + C_s = 0,
+J\,\dot{\Omega}(t) + f\,\Omega(t) + C_s = 0,
 \]
-which can be written as:
+or, with $\tau=\tfrac{J}{f}$,
 \[
-\dot{\Omega} + \frac{1}{\tau}\,\Omega = -\frac{C_s}{J}, \qquad \text{with } \tau = \frac{J}{f}.
+\dot{\Omega}(t) + \frac{1}{\tau}\,\Omega(t) \;=\; -\frac{C_s}{J}.
 \]
-The solution of this first-order differential equation is:
+Its solution for $t\ge 0$ (with $\Omega_0=\Omega(0)$ at switch--off) is
 \[
-\Omega(t) = \left(\Omega_0 + \frac{C_s}{f}\right)e^{-t/\tau} - \frac{C_s}{f},
+\Omega(t) \;=\; \Big(\Omega_0 + \frac{C_s}{f}\Big)\,e^{-t/\tau} \;-\; \frac{C_s}{f}.
+\tag{*}
 \]
-where $\Omega_0$ is the speed at the moment the supply is interrupted.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.7\textwidth]{figures/signal_removed.png}
-\caption{Angular velocity $\Omega(t)$ decay (blue curve) when the control signal is removed, showing exponential deceleration due to friction.}
+\caption{Angular velocity $\Omega(t)$ decay (blue curve) after supply cut (Figure~\ref{fig:J_measurement}).}
 \label{fig:J_measurement}
 \end{figure}
 
-From the experimental speed curve (see Figure~\ref{fig:J_measurement}), the motor exhibits an exponential decay in velocity until it comes to rest. By determining the time constant $\tau$ from the slope of this decay, the moment of inertia is obtained as:
-\[
-J = \tau\,f.
-\]
-Using the identified viscous friction coefficient and the time constant estimated from the measured response, we find:
+\noindent
+We used \textsc{Matlab} code to fit a function that approximates the experimental speed decay curve shown in Figure~\ref{fig:J_measurement}. The fitting process involved nonlinear least squares optimization to match the analytical model \eqref{fig:J_measurement} (equation~(*)) to the measured data, with $\tau$ and $\Omega_0$ as fitting parameters while $f$ and $C_s$ were held constant at their previously identified values. The fitted function closely matches the experimental decay, and from this fitted model we directly obtained the moment of inertia as
+
+\noindent
+Using the fitted function parameters, we obtain
 \[
 \boxed{J = 0.1213266~\mathrm{kg\cdot m^2}}.
 \]
-
-This value will be used in the subsequent modeling and simulation stages to complete the characterization of the DC motor’s mechanical dynamics.
+This $J$ is used in the subsequent modeling and control design stages.
 
 
 
@@ -1210,15 +1209,74 @@ Using \texttt{TPVitessePartie24.slx}, remove the link from the \texttt{K\_capI/K
   \label{fig:kwdiv2}
 \end{figure}
 
+\subsubsection{Feed-forward compensation of $C_r(t)$ from $\hat C_r$}
 
+\paragraph{Proposed structure.}
+Keep the proportional speed loop and add a feed-forward from the estimated resistant torque:
+\[
+V_I^\ast(t)\;=\;K_{\Omega p}\bigl(V_\Omega^\ast(t)-V_\Omega(t)\bigr)\;+\;K_{\hat C_r}\,\hat C_r(t),
+\]
+i.e.\ insert a summing junction at the input of the current loop that adds the signal
+$\hat C_r$ after a static gain $K_{\hat C_r}$. This is exactly the structure hinted in the subject (Fig.~16). \,
 
+\paragraph{Proof of disturbance cancellation.}
+Under the ideal current loop assumption ($I^\ast = V_I^\ast/K_{\text{cap}I}$), the speed dynamics are
+\[
+J\dot\Omega \;=\; K_c I^\ast - C_r - f\Omega
+\;=\; \frac{K_c}{K_{\text{cap}I}}\,V_I^\ast - C_r - f\Omega .
+\]
+Substituting the proposed $V_I^\ast$:
+\[
+J\dot\Omega = \frac{K_c}{K_{\text{cap}I}}\,K_{\Omega p}(V_\Omega^\ast - V_\Omega)
+\;+\;\frac{K_c}{K_{\text{cap}I}}\,K_{\hat C_r}\,\hat C_r
+\;-\; C_r \;-\; f\Omega .
+\]
+Group the terms driven by the (true) disturbance:
+\[
+J\dot\Omega = \cdots \;+\;\Bigl(\frac{K_c}{K_{\text{cap}I}}\,K_{\hat C_r}\,\hat C_r - C_r\Bigr) \;-\; f\Omega .
+\]
+If the observer is exact ($\hat C_r = C_r$), the disturbance channel disappears when
+\[
+\frac{K_c}{K_{\text{cap}I}}\,K_{\hat C_r} = 1 
+\quad \Longleftrightarrow \quad
+\boxed{\,K_{\hat C_r} = \dfrac{K_{\text{cap}I}}{K_c}\,}.
+\]
+Therefore the influence of $C_r(t)$ on $\Omega(t)$ is cancelled with this choice, as required. \,
 
+\paragraph{Remark on estimation error.}
+If $\hat C_r = C_r - e_{C_r}$, the residual input is $-(1/J)\,e_{C_r}$, so perfect cancellation occurs when the observer is accurate; otherwise the steady-state error scales with the estimation error.
 
+\paragraph{Implementation note (Simulink).}
+Enable the feed-forward path from $\hat C_r$ to $V_I^\ast$ through a gain block fixed at
+$K_{\text{cap}I}/K_c$ (the \texttt{K\_capI/Kc} block in \texttt{TPVitessePartie24.slx}). This addition is static feed-forward and does not change the closed-loop poles; it only removes the steady-state disturbance channel (subject to saturation limits). \,
 
+\subsubsection{Validation of steady-state error cancellation (with $\hat C_r$ feed-forward)}
 
-\noindent\textbf{Conclusion:}
-The proportional controller alone ensures fast dynamics and good damping but cannot eliminate steady-state error.  
-Introducing a torque compensation term or an integral action in the speed loop is required for perfect tracking.
+With the compensation enabled (connecting the block \texttt{K\_capI/Kc} so that $K_{\hat C_r}=K_{\text{cap}I}/K_c$), the command is
+\[
+V_I^\ast(t)=K_{\Omega p}\bigl(V_\Omega^\ast(t)-V_\Omega(t)\bigr)+\frac{K_{\text{cap}I}}{K_c}\,\hat C_r(t),
+\]
+which cancels the disturbance channel under the ideal current loop assumption. \,
+
+\paragraph{Simulation scenario.}
+In \texttt{TPVitessePartie24.slx}, we apply a speed step $\Omega^\ast:0\!\to\!300~\mathrm{rpm}$ at $t=1\,\mathrm{s}$ and a load step $C_r:0\!\to\!5~\mathrm{N\,m}$ at $t=5\,\mathrm{s}$. The current and speed responses are shown in Fig.~\ref{fig:kcplugged}.
+
+\paragraph{Results.}
+\begin{itemize}
+  \item Before the disturbance, $\Omega(t)$ reaches $300~\mathrm{rpm}$ with negligible offset.
+  \item At $t=5\,\mathrm{s}$, the load step produces a short transient (small dip), after which $\Omega(t)$ returns to the reference with \emph{zero} steady-state error (numerically $<0.1\%$).
+  \item The current settles to the value needed to balance the load, $I_\infty \approx C_r/K_c$; for $C_r=5~\mathrm{N\,m}$ and $K_c\simeq0.795$, this gives $I_\infty\!\approx\!6.3~\mathrm{A}$, consistent with the plot.
+\end{itemize}
+
+\paragraph{Conclusion.}
+Activating the feed-forward $\hat C_r$ with $K_{\hat C_r}=K_{\text{cap}I}/K_c$ removes the steady-state error of $\Omega(t)$ with respect to $\Omega^\ast(t)$ despite the load step, as predicted by the analysis in 2.4.d. \,
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=.95\linewidth]{figures/kcplugged.png}
+  \caption{Effect of enabling the static compensation $K_{\hat C_r}=K_{\text{cap}I}/K_c$ using $\hat C_r(t)$ from the observer: the steady-state error due to a $C_r$ step is eliminated while preserving the transient performance.}
+  \label{fig:kcplugged}
+\end{figure}
 
 \newpage
 %------------ Section 3 ----------------
